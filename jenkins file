@@ -1,0 +1,33 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('code commit') {
+            steps {
+               git branch: 'main', url: 'https://github.com/LondheShubham153/django-notes-app.git'
+            }
+        }
+        stage('docker build'){
+            steps{
+                sh 'docker build -t notes-app:latest .'
+            }
+        }
+        stage('docker run'){
+            steps{
+                sh 'docker run -d -p 8000:8000 notes-app:latest'
+            }
+        }
+        stage("Push To DockerHub"){
+            steps{
+                withCredentials([usernamePassword(
+                    credentialsId:"docker-cred",
+                    usernameVariable:"dockerHubUser", 
+                    passwordVariable:"dockerHubPass")]){
+                sh 'echo $dockerHubPass | docker login -u $dockerHubUser --password-stdin'
+                sh "docker image tag notes-app:latest ${env.dockerHubUser}/notes-app:latest"
+                sh "docker push ${env.dockerHubUser}/notes-app:latest"
+                }
+            }
+        }
+    }
+}
